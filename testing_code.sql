@@ -121,25 +121,109 @@ LEFT JOIN
  industry
 ON series.industry_code = industry.industry_code
 
-*/
-
 -- return the `series_id`, `industry_code`, `industry_name`, and `value` from the `january_2017` table but 
 -- only if that value is greater than the average value for `annual_2016` of `data_type_code` 82.
 
 SELECT 
- series_id,
- industry_code,
- industry_name,
- value
+ j.series_id,
+ j.value,
+ a.aav
 FROM 
- january_2017
-(
-Select
-    AVG(value) AS aav,
-    data_type_code
+ january_2017 AS j
+INNER JOIN ( 
+    SELECT 
+        series_id,
+        AVG(value) AS aav
+    FROM
+        annual_2016
+    WHERE RIGHT(series_id, 2) = '82'
+    GROUP BY
+        series_id
+    HAVING
+        AVG([value]) > 82
+) AS a
+ON 
+ j.series_id = a.series_id
+WHERE 
+    j.value > a.aav
+ORDER BY
+    j.value;
+    
+
+Create a `Union` table comparing average weekly earnings of production and nonsupervisory employees between
+ `annual_2016` and `january_2017` using the data type 30.  Round to the nearest penny.  You should have a column 
+ for the average earnings and a column for the year, and the period.
+
+
+SELECT
+  ROUND(avg(value), 2) as avg,
+  year,
+  period,
+  series_id
 FROM
- annual_2016
-WHERE aav = > '82'
-GROUP BY aav
+ dbo.annual_2016
+WHERE
+ RIGHT(series_id, 2) = '30'
+GROUP BY
+ [year],
+ [period],
+ series_id
+
+UNION
+
+SELECT
+ round(avg(value), 2),
+ year,
+ period,
+ series_id
+FROM
+ dbo.january_2017
+WHERE
+ RIGHT(series_id, 2) = '30'
+GROUP BY
+ [year],
+ [period],
+ series_id;
+ 
+
+SELECT 
+ series_id
+
+WITH combined AS (
+
+    SELECT
+        ROUND(AVG(value), 2) AS avg,
+        year,
+        period,
+        series_id
+    FROM dbo.annual_2016
+    WHERE RIGHT(series_id, 2) = '30'
+    GROUP BY year, period, series_id
+
+    UNION
+
+    SELECT
+        ROUND(AVG(value), 2) AS avg,
+        year,
+        period,
+        series_id
+    FROM dbo.january_2017
+    WHERE RIGHT(series_id, 2) = '30'
+    GROUP BY year, period, series_id
 )
- january_2017;
+
+SELECT *
+FROM combined
+WHERE avg = (SELECT MAX(avg) FROM combined);
+
+
+SELECT
+ i.industry_name
+FROM 
+ industry as i
+INNER JOIN series AS s
+ON i.industry_code = s.industry_code
+WHERE
+ s.series_id LIKE '%CEU5552413030%';
+
+ */
