@@ -1,2 +1,2 @@
-print(type("17"))
-print(type("3.2"))
+info = input("25")
+print(type(info))
